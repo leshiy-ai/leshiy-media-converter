@@ -6,21 +6,45 @@ const path = require('path');
 
 const app = express();
 
-// Используем /tmp — гарантированно доступен в Docker
-const upload = multer({ dest: '/tmp/uploads/' });
+// Создаём временную папку
+const tmpDir = '/tmp/uploads';
+if (!fs.existsSync(tmpDir)) {
+  fs.mkdirSync(tmpDir, { recursive: true });
+}
+
+// Настройка multer: сохраняем как .ogg
+const storage = multer.diskStorage({
+  destination: tmpDir,
+  filename: (req, file, cb) => {
+    // Генерируем уникальное имя с расширением .ogg
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `voice-${uniqueSuffix}.ogg`);
+  }
+});
+
+const upload = multer({ storage: storage });
 
 app.post('/convert', upload.single('audio'), async (req, res) => {
   try {
-    const inputPath = req.file.path;
-    const outputPath = inputPath + '.mp3';
+    const inputPath = req.file.path; // Теперь это .../voice-12345.ogg
+    const outputPath = inputPath.replace('.ogg', '.mp3');
 
-    // Конвертируем OGG → MP3
-    const command = `ffmpeg -i "${inputPath}" -ar 22050 -ac 1 -b:a 64k "${outputPath}" 2>&1`;
-    const { stdout, stderr } = await exec(command);
-    console.log('FFmpeg output:', stdout);
-    console.error('FFmpeg errors:', stderr);
+    // Конвертируем
+    const command = `ffmpeg -y -i "${inputPath}" -ar 22050 -ac 1 -b:a 64k "${outputPath}"`;
+    
+    // Выполняем и ждём завершения
+    await new Promise((resolve, reject) => {
+      exec(command, (error, stdout, stderr) => {
+        console.log('FFmpeg stdout:', stdout);
+        console.error('FFmpeg stderr:', stderr);
+        if (error) {
+          reject(error);
+        } else {
+          resolve();
+        }
+      });
+    });
 
-    // Проверяем, что файл создан
     if (!fs.existsSync(outputPath)) {
       throw new Error('MP3 file was not created');
     }
@@ -29,7 +53,7 @@ app.post('/convert', upload.single('audio'), async (req, res) => {
     res.setHeader('Content-Type', 'audio/mpeg');
     res.send(mp3Buffer);
 
-    // Удаляем временные файлы
+    // Cleanup
     fs.unlinkSync(inputPath);
     fs.unlinkSync(outputPath);
 
@@ -45,10 +69,5 @@ app.get('/', (req, res) => {
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  // Создаём папку /tmp/uploads при старте (на всякий случай)
-  const tmpUploadDir = '/tmp/uploads';
-  if (!fs.existsSync(tmpUploadDir)) {
-    fs.mkdirSync(tmpUploadDir, { recursive: true });
-  }
   console.log(`Server running on port ${port}`);
 });
