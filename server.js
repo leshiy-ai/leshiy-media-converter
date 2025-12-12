@@ -3,15 +3,15 @@ const multer = require('multer');
 const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-
-const app = express();
-const upload = multer({ dest: 'uploads/' });
-
 // Создаём папку uploads, если её нет
 const uploadDir = 'uploads';
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
+const app = express();
+const upload = multer({ dest: 'uploads/' });
+
+
 app.post('/convert', upload.single('audio'), async (req, res) => {
   try {
     const inputPath = req.file.path;
