@@ -41,13 +41,13 @@ if (!fs.existsSync(videoDir)) {
 }
 
 // Реализуем поворот фотографии
-const rotateUpload = multer({ 
+const imageRotateUpload = multer({ 
   dest: '/tmp/rotate-image/',
   limits: { fileSize: 10 * 1024 * 1024 } // 10 МБ
 });
-const rotateDir = '/tmp/rotate-image';
-if (!fs.existsSync(rotateDir)) {
-  fs.mkdirSync(rotateDir, { recursive: true });
+const rotateImageDir = '/tmp/rotate-image';
+if (!fs.existsSync(rotateImageDir)) {
+  fs.mkdirSync(rotateImageDir, { recursive: true });
 }
 
 // Релизуем поворот видео
@@ -72,7 +72,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// Приложения
+// Эндпоинты
 app.post('/ogg2mp3', upload.single('audio'), async (req, res) => {
   try {
     const inputPath = req.file.path; // Теперь это .../voice-12345.ogg
@@ -112,14 +112,14 @@ app.post('/ogg2mp3', upload.single('audio'), async (req, res) => {
   }
 });
 
-app.post('/rotate-image', rotateUpload.single('image'), async (req, res) => {
+app.post('/rotate-image', imageRotateUpload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).send('No image provided');
     }
 
-    const angle = req.query.angle; // '90', '-90', '180'
-    if (!['90', '-90', '180'].includes(angle)) {
+    const angleImage = req.query.angle; // '90', '-90', '180'
+    if (!['90', '-90', '180'].includes(angleImage)) {
       return res.status(400).send('Invalid angle: use 90, -90, or 180');
     }
 
@@ -128,11 +128,11 @@ app.post('/rotate-image', rotateUpload.single('image'), async (req, res) => {
     const outputPath = `/tmp/rotated-image-${Date.now()}${ext}`;
 
     let vf;
-    if (angle === '90') {
+    if (angleImage === '90') {
       vf = 'transpose=1';
-    } else if (angle === '-90') {
+    } else if (angleImage === '-90') {
       vf = 'transpose=2';
-    } else if (angle === '180') {
+    } else if (angleImage === '180') {
       vf = 'hflip,vflip';
     }
 
@@ -174,8 +174,8 @@ app.post('/rotate-video', videoRotateUpload.single('video'), async (req, res) =>
       return res.status(400).send('No video provided');
     }
 
-    const angle = req.query.angle; // '90', '-90', '180'
-    if (!['90', '-90', '180'].includes(angle)) {
+    const angleVideo = req.query.angle; // '90', '-90', '180'
+    if (!['90', '-90', '180'].includes(angleVideo)) {
       return res.status(400).send('Invalid angle: use 90, -90, or 180');
     }
 
@@ -183,11 +183,11 @@ app.post('/rotate-video', videoRotateUpload.single('video'), async (req, res) =>
     const outputPath = `/tmp/rotated-video-${Date.now()}.mp4`;
 
     let vf;
-    if (angle === '90') {
+    if (angleVideo === '90') {
       vf = 'transpose=1';
-    } else if (angle === '-90') {
+    } else if (angleVideo === '-90') {
       vf = 'transpose=2';
-    } else if (angle === '180') {
+    } else if (angleVideo === '180') {
       vf = 'hflip,vflip';
     }
 
