@@ -1,3 +1,4 @@
+// Константы
 const express = require('express');
 const multer = require('multer');
 const { exec } = require('child_process');
@@ -6,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const app = express();
 
+// Дебаг - выдает версию ffmpeg
 app.get('/debug', (req, res) => {
   exec('ffmpeg -version', (error, stdout, stderr) => {
     if (error) {
@@ -37,14 +39,25 @@ const videoDir = '/tmp/video-uploads';
 if (!fs.existsSync(videoDir)) {
   fs.mkdirSync(videoDir, { recursive: true });
 }
+
 // Реализуем поворот фотографии
 const rotateUpload = multer({ 
-  dest: '/tmp/rotate/',
+  dest: '/tmp/rotate-image/',
   limits: { fileSize: 10 * 1024 * 1024 } // 10 МБ
 });
-const rotateDir = '/tmp/rotate';
+const rotateDir = '/tmp/rotate-image';
 if (!fs.existsSync(rotateDir)) {
   fs.mkdirSync(rotateDir, { recursive: true });
+}
+
+// Релизуем поворот видео
+const videoRotateUpload = multer({ 
+  dest: '/tmp/rotate-video/',
+  limits: { fileSize: 50 * 1024 * 1024 } // 50 МБ
+});
+const rotateVideoDir = '/tmp/rotate-video';
+if (!fs.existsSync(rotateVideoDir)) {
+  fs.mkdirSync(rotateVideoDir, { recursive: true });
 }
 
 // Настройка multer: сохраняем как .ogg
@@ -59,6 +72,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+// Приложения
 app.post('/ogg2mp3', upload.single('audio'), async (req, res) => {
   try {
     const inputPath = req.file.path; // Теперь это .../voice-12345.ogg
@@ -98,7 +112,7 @@ app.post('/ogg2mp3', upload.single('audio'), async (req, res) => {
   }
 });
 
-app.post('/rotate', rotateUpload.single('image'), async (req, res) => {
+app.post('/rotate-image', rotateUpload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).send('No image provided');
@@ -111,7 +125,7 @@ app.post('/rotate', rotateUpload.single('image'), async (req, res) => {
 
     const inputPath = req.file.path;
     const ext = path.extname(req.file.originalname).toLowerCase() || '.jpg';
-    const outputPath = `/tmp/rotated-${Date.now()}${ext}`;
+    const outputPath = `/tmp/rotated-image-${Date.now()}${ext}`;
 
     let vf;
     if (angle === '90') {
@@ -151,6 +165,62 @@ app.post('/rotate', rotateUpload.single('image'), async (req, res) => {
   } catch (error) {
     console.error('Rotate error:', error);
     res.status(500).send('Image rotation failed');
+  }
+});
+
+app.post('/rotate-video', videoRotateUpload.single('video'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).send('No video provided');
+    }
+
+    const angle = req.query.angle; // '90', '-90', '180'
+    if (!['90', '-90', '180'].includes(angle)) {
+      return res.status(400).send('Invalid angle: use 90, -90, or 180');
+    }
+
+    const inputPath = req.file.path;
+    const outputPath = `/tmp/rotated-video-${Date.now()}.mp4`;
+
+    let vf;
+    if (angle === '90') {
+      vf = 'transpose=1';
+    } else if (angle === '-90') {
+      vf = 'transpose=2';
+    } else if (angle === '180') {
+      vf = 'hflip,vflip';
+    }
+
+    // -c:a copy — не перекодируем аудио
+    const command = `ffmpeg -i "${inputPath}" -vf "${vf}" -c:a copy -y "${outputPath}"`;
+
+    await new Promise((resolve, reject) => {
+      exec(command, (error, stdout, stderr) => {
+        if (error) {
+          console.error('Video rotate error:', stderr);
+          reject(new Error('Video rotation failed'));
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    if (!fs.existsSync(outputPath)) {
+      throw new Error('Rotated video not created');
+    }
+
+    const videoBuffer = fs.readFileSync(outputPath);
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Content-Length', videoBuffer.length);
+    res.send(videoBuffer);
+
+    // Cleanup
+    fs.unlinkSync(inputPath);
+    fs.unlinkSync(outputPath);
+
+  } catch (error) {
+    console.error('Rotate-video error:', error);
+    res.status(500).send('Video rotation failed');
   }
 });
 
