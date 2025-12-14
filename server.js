@@ -264,19 +264,38 @@ app.post('/video2image', videoToImageUpload.single('video'), async (req, res) =>
     }
 
     // Получаем размеры через FFprobe (входит в FFmpeg)
-    const probeCommand = `ffprobe -v quiet -show_entries stream=width,height -of csv=p=0 "${outputPath}"`;
-    const { stdout: probeStdout } = await new Promise((resolve, reject) => {
-      exec(probeCommand, { encoding: 'utf8' }, (error, stdout, stderr) => {
-        if (error) {
-          console.error('FFprobe error:', stderr);
-          reject(new Error('Failed to get image dimensions'));
-        } else {
-          resolve({ stdout });
-        }
-      });
-    });
-    const [width, height] = probeStdout.trim().split('\n').map(Number);
+    const probeCommand = `ffprobe -v quiet -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "${outputPath}"`; // 🟢 Добавили -select_streams v:0 для надежности
+    let probeStdout;
+
+    try {
+        const result = await new Promise((resolve, reject) => {
+            // exec возвращает stdout как строку, если не указано иное
+            exec(probeCommand, { encoding: 'utf8' }, (error, stdout, stderr) => {
+                if (error) {
+                    console.error('FFprobe error:', stderr);
+                    reject(new Error(`FFprobe failed to get dimensions: ${stderr.substring(0, 100)}`));
+                } else {
+                    resolve(stdout); // Возвращаем чистый stdout
+                }
+            });
+        });
+        probeStdout = result;
+    } catch (e) {
+        throw e; // Пробрасываем ошибку FFprobe
+    }
+
+    // ИСПРАВЛЕНИЕ: Разбиваем по запятой, а не по новой строке, и берем только первое совпадение
+    const dimensionsString = probeStdout.trim().split('\n')[0] || ''; 
+    const [widthStr, heightStr] = dimensionsString.split(',');
     
+    // Проверяем и конвертируем
+    const width = Number(widthStr);
+    const height = Number(heightStr);
+
+    if (isNaN(width) || isNaN(height) || width === 0 || height === 0) {
+        console.error('Parsed dimensions:', widthStr, heightStr);
+        throw new Error('Parsed width or height is invalid (NaN or 0)');
+    }
 
     // Читаем изображение и конвертируем в base64
     const imgBuffer = fs.readFileSync(outputPath);
