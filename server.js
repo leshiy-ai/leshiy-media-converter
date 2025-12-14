@@ -17,70 +17,11 @@ app.get('/debug', (req, res) => {
   });
 });
 
-// Middleware для обработки сырых бинарных данных (PCM)
-app.use('/pcm2mp3', express.raw({ 
-  type: 'application/octet-stream',
-  limit: '20mb' // лимит размера PCM
-}));
-
 // Создаём временную папку
 const audioUpload = '/tmp/audio-uploads';
 if (!fs.existsSync(audioUpload)) {
   fs.mkdirSync(audioUpload, { recursive: true });
 }
-
-// Поддержка извлечения аудио из видео
-const videoUpload = multer({ 
-  dest: '/tmp/video-uploads/',
-  limits: { fileSize: 50 * 1024 * 1024 } // 50 МБ максимум
-});
-// Убедимся, что папка существует
-const videoDir = '/tmp/video-uploads';
-if (!fs.existsSync(videoDir)) {
-  fs.mkdirSync(videoDir, { recursive: true });
-}
-
-// Реализуем поворот фотографии
-const imageRotateUpload = multer({ 
-  dest: '/tmp/rotate-image/',
-  limits: { fileSize: 10 * 1024 * 1024 } // 10 МБ
-});
-const rotateImageDir = '/tmp/rotate-image';
-if (!fs.existsSync(rotateImageDir)) {
-  fs.mkdirSync(rotateImageDir, { recursive: true });
-}
-
-// Релизуем поворот видео
-const videoRotateUpload = multer({ 
-  dest: '/tmp/rotate-video/',
-  limits: { fileSize: 50 * 1024 * 1024 } // 50 МБ
-});
-const rotateVideoDir = '/tmp/rotate-video';
-if (!fs.existsSync(rotateVideoDir)) {
-  fs.mkdirSync(rotateVideoDir, { recursive: true });
-}
-
-// Стоп-кадр из видео
-const videoToImageUpload = multer({ 
-  dest: '/tmp/video2image/',
-  limits: { fileSize: 50 * 1024 * 1024 }
-});
-const videoToImageDir = '/tmp/video2image';
-if (!fs.existsSync(videoToImageDir)) {
-  fs.mkdirSync(videoToImageDir, { recursive: true });
-}
-
-// Видео в GIF
-const gifUpload = multer({ 
-  dest: '/tmp/gif/',
-  limits: { fileSize: 50 * 1024 * 1024 }
-});
-
-// GIF в видео
-const gifToVideoUpload = multer({ 
-  dest: '/tmp/gif2video/',
-  limits: { fileSize: 25 * 1024 * 1024 } // 25 МБ — макс. размер GIF
-});
 
 // Настройка multer: сохраняем как .ogg
 const storage = multer.diskStorage({
@@ -91,7 +32,6 @@ const storage = multer.diskStorage({
     cb(null, `voice-${uniqueSuffix}.ogg`);
   }
 });
-
 const upload = multer({ storage: storage });
 
 // Эндпоинты
@@ -134,6 +74,15 @@ app.post('/ogg2mp3', upload.single('audio'), async (req, res) => {
   }
 });
 
+// Реализуем поворот фотографии
+const imageRotateUpload = multer({ 
+  dest: '/tmp/rotate-image/',
+  limits: { fileSize: 10 * 1024 * 1024 } // 10 МБ
+});
+const rotateImageDir = '/tmp/rotate-image';
+if (!fs.existsSync(rotateImageDir)) {
+  fs.mkdirSync(rotateImageDir, { recursive: true });
+}
 app.post('/rotate-image', imageRotateUpload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
@@ -190,6 +139,15 @@ app.post('/rotate-image', imageRotateUpload.single('image'), async (req, res) =>
   }
 });
 
+// Релизуем поворот видео
+const videoRotateUpload = multer({ 
+  dest: '/tmp/rotate-video/',
+  limits: { fileSize: 50 * 1024 * 1024 } // 50 МБ
+});
+const rotateVideoDir = '/tmp/rotate-video';
+if (!fs.existsSync(rotateVideoDir)) {
+  fs.mkdirSync(rotateVideoDir, { recursive: true });
+}
 app.post('/rotate-video', videoRotateUpload.single('video'), async (req, res) => {
   try {
     if (!req.file) {
@@ -246,6 +204,15 @@ app.post('/rotate-video', videoRotateUpload.single('video'), async (req, res) =>
   }
 });
 
+// Стоп-кадр из видео
+const videoToImageUpload = multer({ 
+  dest: '/tmp/video2image/',
+  limits: { fileSize: 50 * 1024 * 1024 }
+});
+const videoToImageDir = '/tmp/video2image';
+if (!fs.existsSync(videoToImageDir)) {
+  fs.mkdirSync(videoToImageDir, { recursive: true });
+}
 app.post('/video2image', videoToImageUpload.single('video'), async (req, res) => {
   try {
     if (!req.file) {
@@ -332,6 +299,16 @@ app.post('/video2image', videoToImageUpload.single('video'), async (req, res) =>
   }
 });
 
+// Поддержка извлечения аудио из видео
+const videoUpload = multer({ 
+  dest: '/tmp/video-uploads/',
+  limits: { fileSize: 50 * 1024 * 1024 } // 50 МБ максимум
+});
+// Убедимся, что папка существует
+const videoDir = '/tmp/video-uploads';
+if (!fs.existsSync(videoDir)) {
+  fs.mkdirSync(videoDir, { recursive: true });
+}
 app.post('/video2mp3', videoUpload.single('video'), async (req, res) => {
   try {
     if (!req.file) {
@@ -377,6 +354,11 @@ app.post('/video2mp3', videoUpload.single('video'), async (req, res) => {
   }
 });
 
+// Middleware для обработки сырых бинарных данных (PCM)
+app.use('/pcm2mp3', express.raw({ 
+  type: 'application/octet-stream',
+  limit: '20mb' // лимит размера PCM
+}));
 app.post('/pcm2mp3', async (req, res) => {
   try {
     // req.body — это Buffer с сырыми PCM-данными
@@ -441,6 +423,11 @@ app.post('/pcm2mp3', async (req, res) => {
   }
 });
 
+// Видео в GIF
+const gifUpload = multer({ 
+  dest: '/tmp/gif/',
+  limits: { fileSize: 50 * 1024 * 1024 }
+});
 app.post('/video2gif', gifUpload.single('video'), async (req, res) => {
   try {
     if (!req.file) {
@@ -508,6 +495,11 @@ app.post('/video2gif', gifUpload.single('video'), async (req, res) => {
   }
 });
 
+// GIF в видео
+const gifToVideoUpload = multer({ 
+  dest: '/tmp/gif2video/',
+  limits: { fileSize: 25 * 1024 * 1024 } // 25 МБ — макс. размер GIF
+});
 app.post('/gif2video', gifToVideoUpload.single('gif'), async (req, res) => {
   try {
     if (!req.file) {
@@ -547,6 +539,68 @@ app.post('/gif2video', gifToVideoUpload.single('gif'), async (req, res) => {
   } catch (error) {
     console.error('GIF2Video error:', error);
     res.status(500).send(`Conversion failed: ${error.message}`);
+  }
+});
+
+// Конвертация видео в заданное разрешение
+const resizeUpload = multer({
+  dest: '/tmp/resize-video/',
+  limits: { fileSize: 50 * 1024 * 1024 } // 50 МБ
+});
+app.post('/resize-video', resizeUpload.single('video'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).send('No video provided');
+    }
+
+    const resolution = req.query.resolution || '480p';
+    const resolutions = {
+      '240p': 240,
+      '360p': 360,
+      '480p': 480,
+      '580p': 580,
+      '720p': 720,
+      '1080p': 1080
+    };
+    const height = resolutions[resolution];
+    if (height === undefined) {
+      return res.status(400).send('Invalid resolution. Use: 240p, 360p, 480p, 580p, 720p, 1080p');
+    }
+
+    const inputPath = req.file.path;
+    const outputPath = `/tmp/resized-${Date.now()}.mp4`;
+
+    // Масштабируем по высоте, ширина — пропорционально и чётная
+    const videoFilter = `scale=-2:${height}`;
+    const command = `ffmpeg -i "${inputPath}" -vf "${videoFilter}" -c:a copy -y "${outputPath}"`;
+
+    await new Promise((resolve, reject) => {
+      exec(command, (error, stdout, stderr) => {
+        if (error) {
+          console.error('Resize error:', stderr);
+          reject(new Error('FFmpeg resize failed'));
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    if (!fs.existsSync(outputPath)) {
+      throw new Error('Resized video not created');
+    }
+
+    const videoBuffer = fs.readFileSync(outputPath);
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Content-Length', videoBuffer.length);
+    res.send(videoBuffer);
+
+    // Cleanup
+    fs.unlinkSync(inputPath);
+    fs.unlinkSync(outputPath);
+
+  } catch (error) {
+    console.error('Resize-video error:', error);
+    res.status(500).send(`Resize failed: ${error.message}`);
   }
 });
 
