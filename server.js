@@ -238,50 +238,57 @@ app.post('/rotate-video', videoRotateUpload.single('video'), async (req, res) =>
 app.post('/video2image', videoToImageUpload.single('video'), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).send('No video provided');
+      return res.status(400).json({ error: 'No video provided' });
     }
 
-    // Время кадра (по умолчанию — 1 секунда)
-    const timestamp = req.query.timestamp || '00:00:01.000'; // формат: HH:MM:SS.mmm
-    const format = (req.query.format || 'jpg').toLowerCase(); // jpg или png
-
+    const timestamp = req.query.timestamp || '00:00:01.000';
+    const format = (req.query.format || 'jpg').toLowerCase();
     if (!['jpg', 'png'].includes(format)) {
-      return res.status(400).send('Format must be jpg or png');
+      return res.status(400).json({ error: 'Format must be jpg or png' });
     }
 
     const inputPath = req.file.path;
     const outputPath = `/tmp/thumbnail-${Date.now()}.${format}`;
 
-    // Команда FFmpeg
+    // Извлекаем кадр
     const command = `ffmpeg -i "${inputPath}" -ss ${timestamp} -vframes 1 -y "${outputPath}"`;
-
     await new Promise((resolve, reject) => {
       exec(command, (error, stdout, stderr) => {
-        if (error) {
-          console.error('Video2Image error:', stderr);
-          reject(new Error('Failed to extract frame'));
-        } else {
-          resolve();
-        }
+        if (error) reject(new Error(`FFmpeg failed: ${stderr}`));
+        else resolve();
       });
     });
 
     if (!fs.existsSync(outputPath)) {
-      throw new Error('Frame was not extracted');
+      return res.status(500).json({ error: 'Frame extraction failed' });
     }
 
-    const imgBuffer = fs.readFileSync(outputPath);
-    const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
-    res.setHeader('Content-Type', mimeType);
-    res.send(imgBuffer);
+    // Получаем размеры через FFprobe (входит в FFmpeg)
+    const probeCommand = `ffprobe -v quiet -show_entries stream=width,height -of csv=p=0 "${outputPath}"`;
+    const { stdout } = await exec(probeCommand);
+    const [width, height] = stdout.trim().split('\n').map(Number);
 
-    // Cleanup
+    // Читаем изображение и конвертируем в base64
+    const imgBuffer = fs.readFileSync(outputPath);
+    const base64 = imgBuffer.toString('base64');
+    const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
+
+    // Удаляем временные файлы
     fs.unlinkSync(inputPath);
     fs.unlinkSync(outputPath);
 
+    // Возвращаем JSON
+    res.json({
+      success: true,
+      image: `data:${mimeType};base64,${base64}`,
+      width,
+      height,
+      format
+    });
+
   } catch (error) {
-    console.error('Video2Image handler error:', error);
-    res.status(500).send('Frame extraction failed');
+    console.error('Video2Image error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
