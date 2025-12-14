@@ -265,8 +265,18 @@ app.post('/video2image', videoToImageUpload.single('video'), async (req, res) =>
 
     // Получаем размеры через FFprobe (входит в FFmpeg)
     const probeCommand = `ffprobe -v quiet -show_entries stream=width,height -of csv=p=0 "${outputPath}"`;
-    const { stdout } = await exec(probeCommand);
-    const [width, height] = stdout.trim().split('\n').map(Number);
+    const { stdout: probeStdout } = await new Promise((resolve, reject) => {
+      exec(probeCommand, { encoding: 'utf8' }, (error, stdout, stderr) => {
+        if (error) {
+          console.error('FFprobe error:', stderr);
+          reject(new Error('Failed to get image dimensions'));
+        } else {
+          resolve({ stdout });
+        }
+      });
+    });
+    const [width, height] = probeStdout.trim().split('\n').map(Number);
+    
 
     // Читаем изображение и конвертируем в base64
     const imgBuffer = fs.readFileSync(outputPath);
