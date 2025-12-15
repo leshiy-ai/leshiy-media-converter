@@ -605,7 +605,7 @@ app.post('/resize-video', resizeUpload.single('video'), async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.send('Leshiy MP3 & Media Converter is ready!');
+  res.send('Leshiy Media Converter is ready!');
 });
 
 const port = process.env.PORT || 3000;
