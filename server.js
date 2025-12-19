@@ -450,9 +450,13 @@ app.post('/video2gif', gifUpload.single('video'), async (req, res) => {
 
     let command;
     if (format === 'mp4') {
-      // force_original_aspect_ratio=decrease гарантирует, что мы не вылезем за пределы width
-      // trunc(ih/2)*2 гарантирует четное число для высоты
-      command = `ffmpeg -ss ${start} -t 5 -i "${inputPath}" -an -vf "fps=${fps},scale=${width}:-2" -c:v libx264 -pix_fmt yuv420p -preset superfast -y "${outputPath}"`;
+      // Ограничиваем длительность (Telegram: стикеры ≤ 3 сек)
+      const startSec = parseFloat(start);
+      const endSec = parseFloat(end);
+      if (endSec <= startSec || endSec - startSec > 5) {
+        return res.status(400).send('Invalid start/end or duration > 5 sec');
+      }
+      command = `ffmpeg -ss ${start} -to ${end} -i "${inputPath}" -an -vf "fps=${fps},scale=${width}:-2" -c:v libx264 -pix_fmt yuv420p -preset superfast -y "${outputPath}"`;
     } else {
       // GIF: двухпроходная генерация для качества
       const palette = `/tmp/palette-${Date.now()}.png`;
