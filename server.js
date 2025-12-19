@@ -4,6 +4,7 @@ const multer = require('multer');
 const { exec } = require('child_process');
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const app = express();
 
@@ -425,9 +426,6 @@ app.post('/pcm2mp3', async (req, res) => {
 
 // Видео в GIF
 const { spawn } = require('child_process');
-const os = require('os');
-const fs = require('fs');
-const path = require('path');
 
 // Гарантированно безопасные пути
 const TMP_DIR = os.tmpdir();
