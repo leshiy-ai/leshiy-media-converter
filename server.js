@@ -8,8 +8,8 @@ const os = require('os');
 const path = require('path');
 const app = express();
 
-// Дебаг - выдает версию ffmpeg
-app.get('/debug', (req, res) => {
+// Инфо - выдает версию ffmpeg
+app.get('/info', (req, res) => {
   exec('ffmpeg -version', (error, stdout, stderr) => {
     if (error) {
       return res.status(500).send(`<pre>Error: ${error.message}\n${stderr}</pre>`);

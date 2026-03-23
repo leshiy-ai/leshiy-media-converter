@@ -22,5 +22,5 @@ jobs:
           execution-timeout: '60s'
           entrypoint: 'index.handler' # Точка входа в твоем index.js
           environment: |
-            APP_DOMAIN=https://d5dtt5rfr7nk66bbrec2.kf69zffa.apigw.yandexcloud.net
+            APP_DOMAIN=https://d5dtt5rfr7nk66bbrec2.kf69zffa.apigw.yandexcloud.net/converter
             DEBUG=true
