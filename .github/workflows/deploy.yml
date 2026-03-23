@@ -21,24 +21,30 @@ jobs:
 
       - name: Build and Push Docker Image
         run: |
-          # Собираем образ по твоему Dockerfile
-          docker build -t cr.yandex/${{ secrets.YC_REGISTRY_ID }}/media-converter:latest .
-          docker push cr.yandex/${{ secrets.YC_REGISTRY_ID }}/media-converter:latest
+          docker build -t cr.yandex/${{ secrets.YANDEX_REGISTRY_ID }}/media-converter:latest .
+          docker push cr.yandex/${{ secrets.YANDEX_REGISTRY_ID }}/media-converter:latest
 
-      - name: Deploy Serverless Container
-        uses: yc-actions/yc-serverless-container@v1 # ИСПРАВЛЕНО
-        with:
-          yc-sa-json-credentials: ${{ secrets.YANDEX_SECRET_KEY }}
-          container-name: 'leshiy-media-converter'
-          folder-id: ${{ secrets.YANDEX_FOLDER_ID }}
-          # Убедись, что переменная ниже совпадает с той, что в блоке Build
-          revision-image-url: 'cr.yandex/${{ secrets.YANDEX_REGISTRY_ID }}/media-converter:latest'
-          revision-service-account-id: ${{ secrets.YANDEX_SERVICE_ID }}
-          revision-cores: 1
-          revision-memory: '1024Mb'
-          revision-concurrency: 16
-          revision-execution-timeout: '60s'
-          environment: |
-            PORT=3000
-            APP_DOMAIN=https://d5dtt5rfr7nk66bbrec2.kf69zffa.apigw.yandexcloud.net/converter
-            DEBUG=true
+      - name: Deploy Serverless Container via YC CLI
+        run: |
+          # 1. Записываем ключ во временный файл для авторизации
+          echo '${{ secrets.YANDEX_SECRET_KEY }}' > sa_key.json
+          
+          # 2. Устанавливаем и настраиваем YC CLI
+          curl https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
+          export PATH=$PATH:/home/runner/yandex-cloud/bin
+          
+          yc config profile create sa-profile
+          yc config set service-account-key sa_key.json
+          yc config set folder-id ${{ secrets.YANDEX_FOLDER_ID }}
+
+          # 3. Создаем или обновляем контейнер
+          # Если контейнера нет, он создастся. Если есть — создаст новую ревизию.
+          yc serverless container revision deploy \
+            --container-name leshiy-media-converter \
+            --image cr.yandex/${{ secrets.YANDEX_REGISTRY_ID }}/media-converter:latest \
+            --cores 1 \
+            --memory 1GB \
+            --concurrency 16 \
+            --execution-timeout 60s \
+            --service-account-id ${{ secrets.YANDEX_SERVICE_ID }} \
+            --environment PORT=3000,DEBUG=true,APP_DOMAIN=https://d5dtt5rfr7nk66bbrec2.kf69zffa.apigw.yandexcloud.net/converter
