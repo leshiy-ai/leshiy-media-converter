@@ -16,7 +16,7 @@ jobs:
         with:
           yc-sa-json-credentials: ${{ secrets.YANDEX_SECRET_KEY }}
           folder-id: ${{ secrets.YANDEX_FOLDER_ID }}
-          function-id: ${{ secrets.YANDEX_FUNCTION_ID }}
+          function-name: 'leshiy-media-converter'
           runtime: 'nodejs22'
           memory: '256Mb'
           execution-timeout: '60s'
