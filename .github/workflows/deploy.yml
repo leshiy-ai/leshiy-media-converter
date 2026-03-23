@@ -47,4 +47,4 @@ jobs:
             --concurrency 16 \
             --execution-timeout 60s \
             --service-account-id ${{ secrets.YANDEX_SERVICE_ID }} \
-            --environment PORT=3000,DEBUG=true,APP_DOMAIN=https://d5dtt5rfr7nk66bbrec2.kf69zffa.apigw.yandexcloud.net/converter
+            --environment DEBUG=true,APP_DOMAIN=https://d5dtt5rfr7nk66bbrec2.kf69zffa.apigw.yandexcloud.net/converter
