@@ -2,7 +2,7 @@
 const express = require('express');
 const multer = require('multer');
 const { exec } = require('child_process');
-
+const router = express.Router();
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -769,6 +769,9 @@ app.post('/resize-video', resizeUpload.single('video'), async (req, res) => {
     res.status(500).send(`Resize failed: ${error.message}`);
   }
 });
+
+// Подключаем все роуты к префиксу /converter
+app.use('/converter', router);
 
 app.get('/', (req, res) => {
   res.send('Leshiy Media Converter is ready!');
