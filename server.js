@@ -1,20 +1,14 @@
 // Константы
 const express = require('express');
 const multer = require('multer');
-const { exec, spawn } = require('child_process');
+const { exec } = require('child_process');
 
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const app = express();
-const router = express.Router(); // <--- Создаем роутер
 
-// Главная страница
-router.get('/', (req, res) => {
-  res.send('Leshiy Media Converter is ready!');
-});
-
-// Дебуг - выдает версию ffmpeg
+// Дебаг - выдает версию ffmpeg
 app.get('/debug', (req, res) => {
   exec('ffmpeg -version', (error, stdout, stderr) => {
     if (error) {
@@ -780,9 +774,4 @@ app.get('/', (req, res) => {
   res.send('Leshiy Media Converter is ready!');
 });
 
-// --- Подключение роутера к приложению ---
-// Все запросы, начинающиеся с /converter, будут обрабатываться роутером
-app.use('/converter', router);
-// --- Экспорт приложения ---
-// Теперь server.js экспортирует готовое приложение Express
-module.exports = app;
+module.exports = { fetch: app };

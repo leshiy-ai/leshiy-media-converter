@@ -21,7 +21,7 @@ module.exports.handler = async (event, context) => {
     }
 
     // 2. Сборка URL (чтобы конвертер понимал пути)
-    const uri = event.url || event.headers['x-envoy-original-path'] || '/converter';
+    const uri = event.url || event.headers['x-envoy-original-path'] || '/';
     const domain = process.env.APP_DOMAIN || "d4e7tkoo8l2b8fliaabq.apigw.yandexcloud.net/converter";
     const fullUrl = `https://${domain}${uri}`;
 
@@ -78,4 +78,9 @@ module.exports.handler = async (event, context) => {
     }
 };
 
-module.exports.handler = serverless(app);
+// Мы говорим serverless-http, что наше приложение живёт по пути /converter.
+// Он будет автоматически убирать этот префикс из URL,
+// и ваше приложение в server.js будет видеть пути как и раньше (например, /info).
+module.exports.handler = serverless(app, {
+    basePath: '/converter'
+  });
