@@ -1,8 +1,11 @@
-name: Deploy to Yandex Cloud
+name: Deploy Converter to Container
 on:
   push:
     branches:
-      - main  # Деплоим при пуше в main
+      - main
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   deploy:
@@ -11,16 +14,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy Function
-        uses: yc-actions/yc-sls-function@v4
+      - name: Login to Yandex Container Registry
+        uses: yc-actions/yc-cr-login@v2
         with:
           yc-sa-json-credentials: ${{ secrets.YANDEX_SECRET_KEY }}
+
+      - name: Build and Push Docker Image
+        run: |
+          # Собираем образ по твоему Dockerfile
+          docker build -t cr.yandex/${{ secrets.YC_REGISTRY_ID }}/media-converter:latest .
+          docker push cr.yandex/${{ secrets.YC_REGISTRY_ID }}/media-converter:latest
+
+      - name: Deploy Serverless Container
+        uses: yc-actions/yc-sls-container@v2
+        with:
+          yc-sa-json-credentials: ${{ secrets.YANDEX_SECRET_KEY }}
+          container-name: 'leshiy-media-converter' # Имя контейнера в Яндексе
           folder-id: ${{ secrets.YANDEX_FOLDER_ID }}
-          function-name: 'leshiy-media-converter'
-          runtime: 'nodejs22'
-          memory: '1024Mb'
-          execution-timeout: '60s'
-          entrypoint: 'index.handler' # Точка входа в твоем index.js
+          revision-image-url: 'cr.yandex/${{ secrets.YANDEX_REGISTRY_ID }}/media-converter:latest'
+          revision-service-account-id: ${{ secrets.YANDEX_SERVICE_ID }}
+          revision-cores: 1
+          revision-memory: '1024Mb'
+          revision-concurrency: 16
+          revision-execution-timeout: '60s'
+          # Передаем переменные окружения
           environment: |
             APP_DOMAIN=https://d5dtt5rfr7nk66bbrec2.kf69zffa.apigw.yandexcloud.net/converter
             DEBUG=true

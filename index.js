@@ -80,7 +80,45 @@ module.exports.handler = async (event, context) => {
 */
 // Мы говорим serverless-http, что наше приложение живёт по пути /converter.
 // Он будет автоматически убирать этот префикс из URL,
-// и ваше приложение в server.js будет видеть пути как и раньше (например, /info).
-module.exports.handler = serverless(app, {
+// и ваше приложение в server.js будет видеть пути как и раньше (например, /debug).
+// Указываем библиотеке, что мы работаем за префиксом
+const handler = serverless(app, {
     basePath: '/converter'
-  });
+});
+
+module.exports.handler = async (event, context) => {
+    // 1. Логируем для отладки (посмотри это в консоли Яндекса -> Логи)
+    console.log('Original Path:', event.url || event.path);
+    console.log('Proxy Param:', event.params?.proxy);
+
+    // 2. Если Гетвей прислал кракозябры, чиним их ПРЯМО в объекте
+    // Яндекс иногда дублирует путь в разных полях
+    const actualProxy = event.params?.proxy || "";
+    
+    const fixPath = (pathStr) => {
+        if (!pathStr) return pathStr;
+        return pathStr.replace(/%7Bproxy\+%7D/g, actualProxy).replace(/{proxy\+}/g, actualProxy);
+    };
+
+    if (event.url) event.url = fixPath(event.url);
+    if (event.path) event.path = fixPath(event.path);
+
+    try {
+        // 3. Вызываем Express через прослойку
+        const response = await handler(event, context);
+        
+        // Гарантируем формат ответа для Яндекс API Gateway
+        return {
+            statusCode: response.statusCode,
+            headers: response.headers,
+            body: response.body,
+            isBase64Encoded: response.isBase64Encoded || false
+        };
+    } catch (err) {
+        console.error('SERVERLESS_ERROR:', err);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ error: 'Internal Server Error', message: err.message })
+        };
+    }
+};

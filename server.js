@@ -774,4 +774,10 @@ app.get('/', (req, res) => {
   res.send('Leshiy Media Converter is ready!');
 });
 
+// Переменная порта
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server started on port ${PORT}`);
+});
+
 module.exports = app;
