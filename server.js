@@ -2,7 +2,6 @@
 const express = require('express');
 const multer = require('multer');
 const { exec } = require('child_process');
-const router = express.Router();
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -770,17 +769,22 @@ app.post('/resize-video', resizeUpload.single('video'), async (req, res) => {
   }
 });
 
-// Подключаем все роуты к префиксу /converter
-app.use('/converter', router);
-
+// Корень для проверки (будет доступен по /converter/)
 app.get('/', (req, res) => {
   res.send('Leshiy Media Converter is ready!');
 });
 
+// МАГИЯ ПРЕФИКСА:
+// Создаем оболочку, которая вешает всё приложение 'app' на путь '/converter'
+const rootApp = express();
+rootApp.use('/converter', app);
+
 // Переменная порта
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server started on port ${PORT}`);
+
+// Запускаем именно оболочку (rootApp)
+rootApp.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server started on port ${PORT}. Prefix: /converter`);
 });
 
-module.exports = app;
+module.exports = rootApp;
