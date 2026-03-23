@@ -12,7 +12,7 @@
 
 ## 🔗 URL сервиса
 
-[https://d4e7tkoo8l2b8fliaabq.apigw.yandexcloud.net/converter](https://d4e7tkoo8l2b8fliaabq.apigw.yandexcloud.net/converter)
+[https://d5dtt5rfr7nk66bbrec2.kf69zffa.apigw.yandexcloud.net/converter](https://d5dtt5rfr7nk66bbrec2.kf69zffa.apigw.yandexcloud.net/converter)
 
 ---
 
@@ -80,12 +80,12 @@
 
 ```bash
 # Поворот изображения:
-curl -X POST "https://d4e7tkoo8l2b8fliaabq.apigw.yandexcloud.net/converter/rotate-image?angle=90" \
+curl -X POST "https://d5dtt5rfr7nk66bbrec2.kf69zffa.apigw.yandexcloud.net/converter/rotate-image?angle=90" \
  -F "image=@photo.jpg" \
  -o rotated.jpg
 
 # PCM → MP3:
-curl -X POST "https://d4e7tkoo8l2b8fliaabq.apigw.yandexcloud.net/converter/pcm2mp3?sampleRate=24000" \
+curl -X POST "https://d5dtt5rfr7nk66bbrec2.kf69zffa.apigw.yandexcloud.net/converter/pcm2mp3?sampleRate=24000" \
  -H "Content-Type: application/octet-stream" \
  --data-binary @speech.pcm \
  -o output.mp3

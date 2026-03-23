@@ -22,7 +22,7 @@ module.exports.handler = async (event, context) => {
 
     // 2. Сборка URL (чтобы конвертер понимал пути)
     const uri = event.url || event.headers['x-envoy-original-path'] || '/';
-    const domain = process.env.APP_DOMAIN || "d4e7tkoo8l2b8fliaabq.apigw.yandexcloud.net/converter";
+    const domain = process.env.APP_DOMAIN || "d5dtt5rfr7nk66bbrec2.kf69zffa.apigw.yandexcloud.net/converter";
     const fullUrl = `https://${domain}${uri}`;
 
     // 3. Создание объекта Request (имитируем Fetch API для воркера)
