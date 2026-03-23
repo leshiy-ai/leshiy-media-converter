@@ -706,7 +706,7 @@ const resizeUpload = multer({
 });
 const resizeVideoDir = '/tmp/resize-video';
 if (!fs.existsSync(resizeVideoDir)) {
-  fs.mkdirSync(resizeVideoDir, { recursive: true });
+  fs.mkdirSync(resizeVideoDir, { recursive: true });
 }
 app.post('/resize-video', resizeUpload.single('video'), async (req, res) => {
   try {
@@ -774,12 +774,4 @@ app.get('/', (req, res) => {
   res.send('Leshiy Media Converter is ready!');
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received — gracefully shutting down');
-  // Можно закрыть сервер, но на Render это не обязательно
-  process.exit(0);
-});
+module.exports = { fetch: app };

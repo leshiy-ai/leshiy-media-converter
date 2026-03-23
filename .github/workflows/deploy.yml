@@ -1,0 +1,26 @@
+name: Deploy to Yandex Cloud
+on:
+  push:
+    branches:
+      - main  # Деплоим при пуше в main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy Function
+        uses: yc-actions/yc-sls-function@v4
+        with:
+          yc-sa-json-credentials: ${{ secrets.YANDEX_SECRET_KEY }}
+          folder-id: ${{ secrets.YANDEX_FOLDER_ID }}
+          function-id: ${{ secrets.YANDEX_FUNCTION_ID }}
+          runtime: 'nodejs22'
+          memory: '256Mb'
+          execution-timeout: '60s'
+          entrypoint: 'index.handler' # Точка входа в твоем index.js
+          environment: |
+            APP_DOMAIN=https://d5dtt5rfr7nk66bbrec2.kf69zffa.apigw.yandexcloud.net
+            DEBUG=true
