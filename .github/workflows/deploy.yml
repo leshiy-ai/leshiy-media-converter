@@ -18,7 +18,7 @@ jobs:
           folder-id: ${{ secrets.YANDEX_FOLDER_ID }}
           function-name: 'leshiy-media-converter'
           runtime: 'nodejs22'
-          memory: '256Mb'
+          memory: '1024Mb'
           execution-timeout: '60s'
           entrypoint: 'index.handler' # Точка входа в твоем index.js
           environment: |
