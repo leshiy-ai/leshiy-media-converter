@@ -1,10 +1,10 @@
-const nodeCrypto = require('crypto');
-const worker = require('./server'); // Подключаем твой основной код конвертера
-const fetch = require('node-fetch');
+//const nodeCrypto = require('crypto');
+//const worker = require('./server'); // Подключаем твой основной код конвертера
+//const fetch = require('node-fetch');
 const serverless = require('serverless-http');
 const app = require('./server');
 
-// Глобальные пропсы для имитации среды Cloudflare/Browser
+/*/ Глобальные пропсы для имитации среды Cloudflare/Browser
 global.fetch = fetch;
 global.Headers = fetch.Headers;
 global.Request = fetch.Request;
@@ -77,7 +77,7 @@ module.exports.handler = async (event, context) => {
         };
     }
 };
-
+*/
 // Мы говорим serverless-http, что наше приложение живёт по пути /converter.
 // Он будет автоматически убирать этот префикс из URL,
 // и ваше приложение в server.js будет видеть пути как и раньше (например, /info).

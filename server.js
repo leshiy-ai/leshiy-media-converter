@@ -774,4 +774,4 @@ app.get('/', (req, res) => {
   res.send('Leshiy Media Converter is ready!');
 });
 
-module.exports = { fetch: app };
+module.exports = app;
