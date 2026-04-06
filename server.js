@@ -46,6 +46,17 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
+// Настройка multer для WAV: сохраняем как .wav
+const wavStorage = multer.diskStorage({
+  destination: audioUpload,
+  filename: (req, file, cb) => {
+    // Генерируем уникальное имя с расширением .wav
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `voice-${uniqueSuffix}.wav`);
+  }
+});
+const wavUpload = multer({ storage: wavStorage });
+
 // Эндпоинты
 app.post('/ogg2mp3', upload.single('audio'), async (req, res) => {
   try {
@@ -82,6 +93,45 @@ app.post('/ogg2mp3', upload.single('audio'), async (req, res) => {
 
   } catch (error) {
     console.error('Conversion error:', error);
+    res.status(500).send('Failed to convert audio');
+  }
+});
+
+app.post('/wav2mp3', wavUpload.single('audio'), async (req, res) => {
+  try {
+    const inputPath = req.file.path; // Теперь это .../voice-12345.wav
+    const outputPath = inputPath.replace('.wav', '.mp3');
+
+    // Конвертируем
+    const command = `ffmpeg -y -i "${inputPath}" -ar 22050 -ac 1 -b:a 64k "${outputPath}"`;
+    
+    // Выполняем и ждём завершения
+    await new Promise((resolve, reject) => {
+      exec(command, (error, stdout, stderr) => {
+        console.log('FFmpeg stdout (wav2mp3):', stdout);
+        console.error('FFmpeg stderr (wav2mp3):', stderr);
+        if (error) {
+          reject(error);
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    if (!fs.existsSync(outputPath)) {
+      throw new Error('MP3 file was not created');
+    }
+
+    const mp3Buffer = fs.readFileSync(outputPath);
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.send(mp3Buffer);
+
+    // Cleanup
+    fs.unlinkSync(inputPath);
+    fs.unlinkSync(outputPath);
+
+  } catch (error) {
+    console.error('Conversion error (wav2mp3):', error);
     res.status(500).send('Failed to convert audio');
   }
 });
