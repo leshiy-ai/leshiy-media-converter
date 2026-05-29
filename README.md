@@ -5,7 +5,7 @@
 Преобразует аудио, видео и изображения в форматы, удобные для TTS, Whisper, аватаров и Telegram-ботов.
 
 * 🚀 **Работает на Yandex.Cloud Serverless Containers**
-* 🔌 **Поддерживает OGG, PCM, MP4, JPG/PNG**
+* 🔌 **Поддерживает OGG, PCM, MP4, WEBM, WEBP, JPG/PNG/HEIC**
 * ⚡ **Быстро, без GPU, на базе FFmpeg**
 
 *   Конвертация аудио из OGG в MP3.
@@ -59,6 +59,9 @@
 | `/resize-video` | `POST` | Изменение разрешения видео. | MP4 и др. | `resolution` (240p до 2160p) |
 | `/video2gif` | `POST` | Создание GIF или видео-стикера из фрагмента видео. | MP4 и др. | `start`, `end`, `format` (gif/mp4), `width`, `fps` |
 | `/gif2video` | `POST` | Преобразование анимированного GIF → MP4. | GIF | |
+| `/webm2mp4` | `POST` | Конвертация WEBM → MP4 (H264 + AAC)| WEBM | |
+| `/webp2png` | `POST` | Конвертация WEBP → PNG с поддержкой прозрачности.| WEBP | |
+| `/heic2jpg` | `POST` | Конвертация HEIC/HEIF (iPhone) → JPG| HEIC, HEIF | |
 
 #### 📸 Эндпоинт: Стоп-кадр из видео (`/video2image`)
 
