@@ -7,6 +7,19 @@ const os = require('os');
 const path = require('path');
 const app = express();
 
+// Безопасный exec с timeout
+const execPromise = (command, timeout = 120000) => {
+  return new Promise((resolve, reject) => {
+    exec(command, { timeout }, (error, stdout, stderr) => {
+      if (error) {
+        reject(new Error(stderr || error.message));
+      } else {
+        resolve({ stdout, stderr });
+      }
+    });
+  });
+};
+
 // Дебаг - выдает версию ffmpeg
 app.get('/debug', (req, res) => {
   exec('ffmpeg -version', (error, stdout, stderr) => {
@@ -17,6 +30,7 @@ app.get('/debug', (req, res) => {
   });
 });
 
+// CORS
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
@@ -757,6 +771,163 @@ app.post('/resize-image', resizeImageUpload.single('image'), async (req, res) =>
   } catch (error) {
     console.error('Resize-image handler error:', error);
     res.status(500).send(`Resize failed: ${error.message}`);
+  }
+});
+
+// WEBM → MP4
+const webmUpload = multer({
+  dest: '/tmp/webm2mp4/',
+  limits: { fileSize: 100 * 1024 * 1024 } // 100 МБ
+});
+
+const webmDir = '/tmp/webm2mp4';
+if (!fs.existsSync(webmDir)) {
+  fs.mkdirSync(webmDir, { recursive: true });
+}
+
+app.post('/webm2mp4', webmUpload.single('video'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).send('No WEBM provided');
+    }
+
+    const inputPath = req.file.path;
+    const outputPath = `/tmp/webm-converted-${Date.now()}.mp4`;
+
+    // Конвертируем WEBM → MP4
+    const command = `ffmpeg -i "${inputPath}" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -preset veryfast -crf 23 -c:a aac -movflags +faststart -pix_fmt yuv420p -y "${outputPath}"`;
+
+    await new Promise((resolve, reject) => {
+      exec(command, (error, stdout, stderr) => {
+        console.log('WEBM→MP4 stdout:', stdout.trim());
+        console.error('WEBM→MP4 stderr:', stderr.trim());
+
+        if (error) {
+          reject(new Error(`FFmpeg failed: ${stderr}`));
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    if (!fs.existsSync(outputPath)) {
+      throw new Error('MP4 file not created');
+    }
+
+    const videoBuffer = fs.readFileSync(outputPath);
+
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Content-Length', videoBuffer.length);
+    res.send(videoBuffer);
+
+    // Cleanup
+    fs.unlinkSync(inputPath);
+    fs.unlinkSync(outputPath);
+
+  } catch (error) {
+    console.error('WEBM2MP4 error:', error);
+    res.status(500).send(`Conversion failed: ${error.message}`);
+  }
+});
+
+// WEBP → PNG
+const webpUpload = multer({
+  dest: '/tmp/webp2png/',
+  limits: { fileSize: 25 * 1024 * 1024 } // 25 МБ
+});
+
+const webpDir = '/tmp/webp2png';
+if (!fs.existsSync(webpDir)) {
+  fs.mkdirSync(webpDir, { recursive: true });
+}
+
+app.post('/webp2png', webpUpload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).send('No WEBP provided');
+    }
+
+    const inputPath = req.file.path;
+    const outputPath = `/tmp/webp-converted-${Date.now()}.png`;
+
+    // Конвертируем WEBP → PNG
+    const command = `ffmpeg -i "${inputPath}" -y "${outputPath}"`;
+
+    await new Promise((resolve, reject) => {
+      exec(command, (error, stdout, stderr) => {
+        console.log('WEBP→PNG stdout:', stdout.trim());
+        console.error('WEBP→PNG stderr:', stderr.trim());
+
+        if (error) {
+          reject(new Error(`FFmpeg failed: ${stderr}`));
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    if (!fs.existsSync(outputPath)) {
+      throw new Error('PNG file not created');
+    }
+
+    const pngBuffer = fs.readFileSync(outputPath);
+
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Length', pngBuffer.length);
+    res.send(pngBuffer);
+
+    // Cleanup
+    fs.unlinkSync(inputPath);
+    fs.unlinkSync(outputPath);
+
+  } catch (error) {
+    console.error('WEBP2PNG error:', error);
+    res.status(500).send(`Conversion failed: ${error.message}`);
+  }
+});
+
+// HEIC → JPG
+const heicDir = path.join(TMP_DIR, 'heic2jpg');
+fs.mkdirSync(heicDir, { recursive: true });
+
+const heicUpload = multer({
+  dest: heicDir,
+  limits: { fileSize: 50 * 1024 * 1024 }
+});
+
+app.post('/heic2jpg', heicUpload.single('image'), async (req, res) => {
+  let inputPath = null;
+  let outputPath = null;
+
+  try {
+    if (!req.file) {
+      return res.status(400).send('No HEIC provided');
+    }
+
+    inputPath = req.file.path;
+    outputPath = path.join(TMP_DIR, `heic-converted-${Date.now()}.jpg`);
+
+    // Конвертируем HEIC → JPG
+    const command = `ffmpeg -i "${inputPath}" -q:v 2 -y "${outputPath}"`;
+
+    await execPromise(command, 180000);
+
+    if (!fs.existsSync(outputPath)) {
+      throw new Error('JPG file not created');
+    }
+
+    const buffer = fs.readFileSync(outputPath);
+
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Content-Length', buffer.length);
+    res.send(buffer);
+
+  } catch (error) {
+    console.error('HEIC2JPG error:', error);
+    res.status(500).send(`Conversion failed: ${error.message}`);
+  } finally {
+    if (inputPath && fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+    if (outputPath && fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
   }
 });
 
